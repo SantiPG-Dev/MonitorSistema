@@ -110,6 +110,16 @@ Rectangle {
 			}
 		}
 
+		// Barra de VRAM con su título encima
+		PlasmaComponents3.Label {
+			Layout.alignment: Qt.AlignHCenter
+			text: i18n("VRAM")
+			color: "#ffffff"
+			opacity: 0.6
+			font.bold: true
+			font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.65)
+		}
+
 		MemBar {
 			Layout.fillWidth: true
 			used: monitorRoot ? monitorRoot.vramUsed : 0

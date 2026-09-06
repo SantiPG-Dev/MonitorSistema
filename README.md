@@ -57,8 +57,8 @@ Discos e interfaces se detectan automáticamente al cargar el widget.
 ## 📥 Instalación
 
 ```bash
-git clone https://github.com/SantiPG-Dev/WidgetKDE-MonitorSistema.git
-cd WidgetKDE-MonitorSistema
+git clone https://github.com/SantiPG-Dev/MonitorSistema.git
+cd MonitorSistema
 kpackagetool6 --type=Plasma/Applet --install WidgetKDEMonitorSistema
 ```
 

@@ -35,7 +35,7 @@ PlasmoidItem {
 	// Las cajas dibujan su propio fondo; sin esto Plasma pintaría otro debajo
 	Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
 
-	// Tamaño en el escritorio (patrón del Glassy: en la raíz del PlasmoidItem)
+	// Tamaño en el escritorio (en la raíz del PlasmoidItem)
 	Layout.minimumWidth: Kirigami.Units.gridUnit * 40
 	Layout.minimumHeight: Kirigami.Units.gridUnit * 30
 	Layout.preferredWidth: Kirigami.Units.gridUnit * 46

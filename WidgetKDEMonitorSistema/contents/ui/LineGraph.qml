@@ -154,9 +154,10 @@ Canvas {
 			}
 
 			// Relleno: de 0 a la línea en TODO el histórico. Se recorta al polígono
-			// bajo la curva y se pinta por segmentos con degradado propio (clip +
-			// fillRect): anclar un único degradado al techo o al valor actual deja
-			// zonas invisibles o un tinte que no nace en la línea según dónde mires
+			// bajo la curva y se pinta en columnas finas con gradiente anclado a la y
+			// INTERPOLADA de la curva en esa columna: anclar al extremo del segmento
+			// deja escalones (tinte fuerte junto al pico, casi nada en la vaguada)
+			// que a simple vista se leen como cuñas o una X
 			if (ser.fill) {
 				ctx.save()
 				tracePath()
@@ -164,14 +165,18 @@ Canvas {
 				ctx.lineTo(w - (n - 1) * dx, bottom)
 				ctx.closePath()
 				ctx.clip()
-				for (var q = 0; q < n - 1; q++) {
-					var x0 = w - (n - 1 - q) * dx
-					var yTop = Math.min(yv(v[q]), yv(v[q + 1]))
-					var gr = ctx.createLinearGradient(0, yTop, 0, bottom)
+				var xFirst = w - (n - 1) * dx
+				var step = 3
+				for (var fx = xFirst; fx < w; fx += step) {
+					var fi = (fx - xFirst) / dx
+					var i0 = Math.max(0, Math.min(n - 1, Math.floor(fi)))
+					var i1 = Math.min(n - 1, i0 + 1)
+					var ty = yv(v[i0]) + (yv(v[i1]) - yv(v[i0])) * (fi - i0)
+					var gr = ctx.createLinearGradient(0, ty, 0, bottom)
 					gr.addColorStop(0, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.35)")
 					gr.addColorStop(1, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0)")
 					ctx.fillStyle = gr
-					ctx.fillRect(x0, 0, dx + 0.75, h)
+					ctx.fillRect(fx, 0, step + 0.75, h)
 				}
 				ctx.restore()
 			}

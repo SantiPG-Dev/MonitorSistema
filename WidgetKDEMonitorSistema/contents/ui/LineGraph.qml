@@ -114,12 +114,16 @@ Canvas {
 				else ctx.lineTo(x, yv(v[j]))
 			}
 			if (ser.fill) {
-				// Copia del trazo cerrada hasta abajo, rellena con degradado vertical
+				// Cerrar el polígono por abajo (último punto → base derecha → base izquierda)
+				// y rellenar con degradado desde la línea actual hasta 0,
+				// no desde el techo del gráfico: si no, con la línea baja el relleno
+				// queda en la zona casi transparente del degradado
 				ctx.save()
-				ctx.lineTo(w - (n - 1) * dx, bottom)
 				ctx.lineTo(w, bottom)
+				ctx.lineTo(w - (n - 1) * dx, bottom)
 				ctx.closePath()
-				var grad = ctx.createLinearGradient(0, top, 0, bottom)
+				var yNow = yv(v[n - 1])
+				var grad = ctx.createLinearGradient(0, yNow, 0, bottom)
 				grad.addColorStop(0, hexRgba(ser.color, 0.35))
 				grad.addColorStop(1, hexRgba(ser.color, 0))
 				ctx.fillStyle = grad

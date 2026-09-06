@@ -102,9 +102,12 @@ PlasmoidItem {
 		"[ \"$(cat $i/operstate 2>/dev/null)\" = up ] && echo \"NET|$n\"; done"
 
 	// Poll periódico: IO por disco acumulado, tráfico por interfaz acumulado y temps hwmon.
+	// La primera línea es la epoch-ms en el momento de leer los contadores: así el dt de las
+	// tasas no hereda el retardo de spawn del shell ni la entrega a QML.
 	// Límite asumido: solo temp1 del hwmon (Composite en NVMe, Tctl en k10temp); si algún
 	// disco expusiera más sensores habría que iterar temp*_input.
 	readonly property string pollCmd:
+		"date +%s%3N; " +
 		"awk '$3 ~ /^(nvme[0-9]+n[0-9]+|sd[a-z]+)$/ {print \"IO \"$3\" \"$6*512\" \"$10*512}' /proc/diskstats; " +
 		"awk 'NR>2 {sub(/:/,\"\"); if ($1 != \"lo\") print \"NET \"$1\" \"$2\" \"$10}' /proc/net/dev; " +
 		"for h in /sys/class/hwmon/hwmon*; do n=$(cat $h/name 2>/dev/null); " +
@@ -127,12 +130,12 @@ PlasmoidItem {
 		}
 	}
 
-	// Poll periódico: el intervalo va en la propiedad del DataSource,
-	// connectSource() solo acepta el comando
+	// Poll periódico: 1 s para que la red se mida por segundo como los widgets nativos.
+	// El intervalo va en la propiedad del DataSource, connectSource() solo acepta el comando
 	Plasma5Support.DataSource {
 		id: pollSource
 		engine: "executable"
-		interval: 2000
+		interval: 1000
 		connectedSources: [root.pollCmd]
 		onNewData: (sourceName, data) => {
 			root.parsePoll(String(data["stdout"] ?? ""))
@@ -163,11 +166,13 @@ PlasmoidItem {
 
 	// --- Parseo del poll periódico: calcula tasas con el delta temporal ---
 	function parsePoll(out) {
-		var now = Date.now()
+		var lines = out.split("\n")
+		// Hora real de la lectura de contadores (epoch ms), no la de llegada a QML
+		var now = Number(lines[0])
+		if (!isFinite(now) || now <= 0) now = Date.now()
 		var dt = lastTick > 0 ? Math.max(0.2, (now - lastTick) / 1000) : 0
 
-		var lines = out.split("\n")
-		for (var i = 0; i < lines.length; i++) {
+		for (var i = 1; i < lines.length; i++) {
 			var l = lines[i]
 			if (!l) continue
 			if (l.indexOf("IO ") === 0) {

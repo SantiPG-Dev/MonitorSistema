@@ -83,8 +83,8 @@ Rectangle {
 						Layout.fillWidth: true
 						Layout.fillHeight: true
 						series: [
-							{ color: card.downColor, fill: true, values: [] },
-							{ color: card.upColor, fill: true, values: [] }
+							{ color: card.downColor, values: [] },
+							{ color: card.upColor, values: [] }
 						]
 					}
 

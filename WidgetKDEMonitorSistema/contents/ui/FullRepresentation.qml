@@ -9,9 +9,6 @@ ColumnLayout {
 
 	property var monitorRoot
 
-	Layout.minimumWidth: Kirigami.Units.gridUnit * 46
-	Layout.minimumHeight: Kirigami.Units.gridUnit * 34
-
 	spacing: Kirigami.Units.gridUnit * 0.7
 
 	RowLayout {
@@ -35,6 +32,7 @@ ColumnLayout {
 				title: i18n("Temp")
 				temp: full.monitorRoot ? full.monitorRoot.gpuTemp : 0
 				Layout.preferredWidth: Kirigami.Units.gridUnit * 1.3
+				Layout.maximumWidth: Kirigami.Units.gridUnit * 1.5
 				Layout.fillHeight: true
 			}
 		}
@@ -55,6 +53,7 @@ ColumnLayout {
 				title: i18n("Temp")
 				temp: full.monitorRoot ? full.monitorRoot.cpuTemp : 0
 				Layout.preferredWidth: Kirigami.Units.gridUnit * 1.3
+				Layout.maximumWidth: Kirigami.Units.gridUnit * 1.5
 				Layout.fillHeight: true
 			}
 		}

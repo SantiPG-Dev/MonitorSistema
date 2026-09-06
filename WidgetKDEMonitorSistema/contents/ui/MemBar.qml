@@ -33,7 +33,7 @@ Item {
 	PlasmaComponents3.Label {
 		anchors.centerIn: parent
 		text: bar.fmt(bar.used) + " / " + bar.fmt(bar.total)
-		font: Kirigami.Theme.smallFont
+		font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
 		font.bold: true
 		color: "#ffffff"
 	}

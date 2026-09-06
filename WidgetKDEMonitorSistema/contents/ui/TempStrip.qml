@@ -1,20 +1,23 @@
 import QtQuick 2.15
-import QtQuick.Layouts
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
 // Barra vertical de temperatura pegada al lateral de la caja de GPU/CPU.
 // Escala fija 0-105 °C y color según tramo; si no llega dato (0) se muestra vacía.
-ColumnLayout {
+// Item con anclajes en vez de layout anidado: así el ancho lo manda siempre
+// quien lo instancia y no puede hincharse.
+Item {
 	id: strip
 
 	property real temp: 0
 	property string title: ""
 
-	spacing: Kirigami.Units.smallSpacing
+	implicitWidth: Math.round(Kirigami.Units.gridUnit * 1.3)
 
 	PlasmaComponents3.Label {
-		Layout.alignment: Qt.AlignHCenter
+		id: titleLabel
+		anchors.top: parent.top
+		anchors.horizontalCenter: parent.horizontalCenter
 		text: strip.title
 		font: Kirigami.Theme.smallFont
 		color: Kirigami.Theme.textColor
@@ -22,8 +25,13 @@ ColumnLayout {
 	}
 
 	Rectangle {
-		Layout.fillWidth: true
-		Layout.fillHeight: true
+		id: groove
+		anchors.top: titleLabel.bottom
+		anchors.topMargin: Kirigami.Units.smallSpacing
+		anchors.bottom: valueLabel.top
+		anchors.bottomMargin: Kirigami.Units.smallSpacing
+		anchors.left: parent.left
+		anchors.right: parent.right
 		radius: width / 2
 		color: Qt.rgba(1, 1, 1, 0.10)
 
@@ -38,9 +46,11 @@ ColumnLayout {
 	}
 
 	PlasmaComponents3.Label {
-		Layout.alignment: Qt.AlignHCenter
+		id: valueLabel
+		anchors.bottom: parent.bottom
+		anchors.horizontalCenter: parent.horizontalCenter
 		text: strip.temp > 0 ? Math.round(strip.temp) + "°" : "—"
-		font: Kirigami.Theme.smallFont
+		font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
 		font.bold: true
 		color: strip.tempColor(strip.temp)
 	}

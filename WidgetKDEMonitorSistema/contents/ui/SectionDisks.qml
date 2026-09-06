@@ -43,6 +43,7 @@ Rectangle {
 				// Cada disco: separador (menos el primero) + celda a partes iguales
 				RowLayout {
 					id: diskPair
+					required property int index
 					required property string name
 					required property string diskModel
 					required property real temp
@@ -73,7 +74,7 @@ Rectangle {
 
 							PlasmaComponents3.Label {
 								text: diskPair.name
-								font: Kirigami.Theme.smallFont
+								font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
 								font.bold: true
 								color: "#ffffff"
 							}
@@ -91,7 +92,7 @@ Rectangle {
 							PlasmaComponents3.Label {
 								visible: diskPair.temp > 0
 								text: diskPair.temp > 0 ? Math.round(diskPair.temp) + " °C" : ""
-								font: Kirigami.Theme.smallFont
+								font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
 								font.bold: true
 								color: "#ff5555"
 							}
@@ -108,7 +109,7 @@ Rectangle {
 							}
 							PlasmaComponents3.Label {
 								text: monitorRoot ? monitorRoot.fmtBytes(diskPair.read) + "/s" : ""
-								font: Kirigami.Theme.smallFont
+								font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
 								font.bold: true
 								color: card.readColor
 							}
@@ -121,7 +122,7 @@ Rectangle {
 							}
 							PlasmaComponents3.Label {
 								text: monitorRoot ? monitorRoot.fmtBytes(diskPair.write) + "/s" : ""
-								font: Kirigami.Theme.smallFont
+								font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
 								font.bold: true
 								color: card.writeColor
 							}

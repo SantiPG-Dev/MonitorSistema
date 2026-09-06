@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts
 import org.kde.plasma.components 3.0 as PlasmaComponents3
-import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 
 // Caja Network: como la captura (descarga/subida con totales) y una columna
@@ -42,6 +41,7 @@ Rectangle {
 
 				RowLayout {
 					id: netPair
+					required property int index
 					required property string iface
 					required property real down
 					required property real up
@@ -70,7 +70,7 @@ Rectangle {
 						RowLayout {
 							Layout.fillWidth: true
 
-							PlasmaCore.IconItem {
+							Kirigami.Icon {
 								Layout.preferredWidth: Kirigami.Units.gridUnit * 0.8
 								Layout.preferredHeight: Kirigami.Units.gridUnit * 0.8
 								source: "network-wired"
@@ -78,7 +78,7 @@ Rectangle {
 
 							PlasmaComponents3.Label {
 								text: netPair.iface
-								font: Kirigami.Theme.smallFont
+								font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
 								font.bold: true
 								color: "#ffffff"
 							}

@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "SantiPG-DEV"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Monitor del sistema en un solo widget: GPU, CPU, temperaturas, discos y red",
+        "EnabledByDefault": true,
+        "Icon": "utilities-system-monitor",
+        "Id": "WidgetKDEMonitorSistema",
+        "License": "GPL-3.0+",
+        "Name": "Monitor Sistema",
+        "Version": "1.0.0",
+        "Website": ""
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml"
+}

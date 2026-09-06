@@ -3,19 +3,20 @@ import QtQuick.Layouts
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
-// Caja CPU: igual que GPU (línea con degradado), barra de RAM del sistema
-// y el modelo de procesador en la cabecera.
+// Caja CPU con la temperatura DENTRO, como una unidad (igual que GPU):
+// gráfica a la izquierda, barra de temperatura pegada al borde derecho.
 Rectangle {
 	id: card
 
 	property var monitorRoot: null
 
 	radius: Kirigami.Units.largeSpacing
-	color: "rgba(15,17,21,0.72)"
-	border.color: "rgba(255,255,255,0.08)"
+	color: Qt.rgba(15 / 255, 17 / 255, 21 / 255, 0.72)
+	border.color: Qt.rgba(1, 1, 1, 0.08)
 	border.width: 1
 
 	readonly property color lineColor: "#2ee6a8"
+	readonly property int baseFont: Math.round(Kirigami.Units.gridUnit * 0.7)
 
 	function brandAndModel() {
 		var m = monitorRoot ? monitorRoot.cpuModel : ""
@@ -28,71 +29,104 @@ Rectangle {
 
 	ColumnLayout {
 		anchors.fill: parent
-		anchors.margins: Kirigami.Units.gridUnit * 0.6
+		anchors.margins: Kirigami.Units.gridUnit * 0.5
 		spacing: Kirigami.Units.smallSpacing
 
-		Item {
+		// Título de la tarjeta
+		PlasmaComponents3.Label {
+			Layout.alignment: Qt.AlignHCenter
+			text: i18n("CPU")
+			color: "#ffffff"
+			font.bold: true
+			font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.85)
+		}
+
+		// Marca y modelo
+		PlasmaComponents3.Label {
 			Layout.fillWidth: true
-			implicitHeight: brandLabel.implicitHeight
-
-			PlasmaComponents3.Label {
-				id: brandLabel
-				anchors.left: parent.left
-				anchors.verticalCenter: parent.verticalCenter
-				width: parent.width - Kirigami.Units.gridUnit * 3
-				elide: Text.ElideRight
-				textFormat: Text.RichText
-				text: {
-					var bm = brandAndModel()
-					return "<div style='white-space: nowrap'>" +
-						"<span style='color:#ff4b4b;font-weight:bold'>" + bm.brand + "</span>" +
-						"<span style='color:" + Kirigami.Theme.textColor + "'> " + bm.model + "</span></div>"
-				}
-				font: Kirigami.Theme.smallFont
+			elide: Text.ElideRight
+			textFormat: Text.RichText
+			text: {
+				var bm = brandAndModel()
+				return "<div style='white-space: nowrap'>" +
+					"<span style='color:#ff4b4b;font-weight:bold'>" + bm.brand + "</span>" +
+					"<span style='color:#ffffff'> " + bm.model + "</span></div>"
 			}
-
-			PlasmaComponents3.Label {
-				anchors.centerIn: parent
-				text: i18n("CPU")
-				font.bold: true
-				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.9)
-				color: "#ffffff"
-			}
+			font.pixelSize: card.baseFont
 		}
 
 		Item {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
-			LineGraph {
-				id: usageGraph
-				anchors.fill: parent
-				percent: true
-				series: [ { color: card.lineColor, fill: true, values: [] } ]
-			}
-
-			ColumnLayout {
+			Rectangle {
+				id: stripSep
+				anchors.right: tempZone.left
+				anchors.rightMargin: Kirigami.Units.smallSpacing
 				anchors.top: parent.top
-				anchors.right: parent.right
-				anchors.margins: Kirigami.Units.smallSpacing
-				spacing: 0
+				anchors.bottom: parent.bottom
+				width: 1
+				color: Qt.rgba(1, 1, 1, 0.12)
+			}
 
-				PlasmaComponents3.Label {
-					Layout.alignment: Qt.AlignRight
-					text: monitorRoot ? monitorRoot.fmtPercent(monitorRoot.cpuUsage) : "0%"
-					font.pixelSize: Math.round(Kirigami.Units.gridUnit * 1.6)
-					font.bold: true
-					color: card.lineColor
+			TempStrip {
+				id: tempZone
+				anchors.right: parent.right
+				anchors.top: parent.top
+				anchors.bottom: parent.bottom
+				width: Kirigami.Units.gridUnit * 1.3
+				showTitle: false
+				temp: monitorRoot ? monitorRoot.cpuTemp : 0
+			}
+
+			Item {
+				id: graphZone
+				anchors.top: parent.top
+				anchors.bottom: parent.bottom
+				anchors.left: parent.left
+				anchors.right: stripSep.left
+				anchors.rightMargin: Kirigami.Units.smallSpacing
+
+				LineGraph {
+					id: usageGraph
+					anchors.fill: parent
+					percent: true
+					series: [ { color: card.lineColor, fill: true, values: [] } ]
 				}
 
-				PlasmaComponents3.Label {
-					Layout.alignment: Qt.AlignRight
-					text: monitorRoot && monitorRoot.cpuFreq > 0 ? Math.round(monitorRoot.cpuFreq) + " MHz" : ""
-					font: Kirigami.Theme.smallFont
-					opacity: 0.6
-					color: "#ffffff"
+				ColumnLayout {
+					anchors.top: parent.top
+					anchors.right: parent.right
+					spacing: 0
+
+					PlasmaComponents3.Label {
+						Layout.alignment: Qt.AlignRight
+						text: monitorRoot ? monitorRoot.fmtPercent(monitorRoot.cpuUsage) : "0%"
+						color: card.lineColor
+						font.bold: true
+						font.pixelSize: Math.round(Kirigami.Units.gridUnit * 1.4)
+					}
+
+					PlasmaComponents3.Label {
+						Layout.alignment: Qt.AlignRight
+						visible: monitorRoot && monitorRoot.cpuFreq > 0
+						text: monitorRoot && monitorRoot.cpuFreq > 0 ? Math.round(monitorRoot.cpuFreq) + " MHz" : ""
+						color: "#ffffff"
+						opacity: 0.55
+						font.pixelSize: card.baseFont
+					}
 				}
 			}
+		}
+
+		// Barra de RAM con su título encima
+		PlasmaComponents3.Label {
+			Layout.alignment: Qt.AlignHCenter
+			text: i18n("RAM")
+			color: "#ffffff"
+			opacity: 0.6
+			font.bold: true
+			font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.65)
 		}
 
 		MemBar {
@@ -115,9 +149,9 @@ Rectangle {
 
 			PlasmaComponents3.Label {
 				text: i18n("CPU")
-				font: Kirigami.Theme.smallFont
-				opacity: 0.6
 				color: "#ffffff"
+				opacity: 0.6
+				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.6)
 			}
 		}
 	}

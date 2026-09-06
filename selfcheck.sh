@@ -17,33 +17,69 @@ for h in /sys/class/hwmon/hwmon*; do n=\$(cat \$h/name 2>/dev/null); \
 p=\$(basename \$(readlink -f \$h/device 2>/dev/null)); t=\$(cat \$h/temp1_input 2>/dev/null); \
 [ -n \"\$n\" ] && [ -n \"\$t\" ] && echo \"TEMP|\$n|\$p|\$t\"; done"
 
-enum_out=$(bash -c "$ENUM_CMD"; true)
-poll_out=$(bash -c "$POLL_CMD"; true)
+enum_out=$(
+	bash -c "$ENUM_CMD"
+	true
+)
+poll_out=$(
+	bash -c "$POLL_CMD"
+	true
+)
 
 fails=0
 
 # Modelo de CPU en la primera línea
-head -1 <<<"$enum_out" | grep -q "Ryzen\|Intel\|AMD\|processor" || { echo "FALLO: modelo de CPU"; fails=1; }
+head -1 <<<"$enum_out" | grep -q "Ryzen\|Intel\|AMD\|processor" || {
+	echo "FALLO: modelo de CPU"
+	fails=1
+}
 
 # Al menos un disco y sin discos extraíbles (sdc/USB) ni zram
 disk_lines=$(grep -c '^DISK|' <<<"$enum_out")
-[ "$disk_lines" -ge 1 ] || { echo "FALLO: sin discos"; fails=1; }
-if grep -q '^DISK|sdc|' <<<"$enum_out"; then echo "FALLO: USB incluido"; fails=1; fi
-if grep -q '^DISK|zram' <<<"$enum_out"; then echo "FALLO: zram incluido"; fails=1; fi
+[ "$disk_lines" -ge 1 ] || {
+	echo "FALLO: sin discos"
+	fails=1
+}
+if grep -q '^DISK|sdc|' <<<"$enum_out"; then
+	echo "FALLO: USB incluido"
+	fails=1
+fi
+if grep -q '^DISK|zram' <<<"$enum_out"; then
+	echo "FALLO: zram incluido"
+	fails=1
+fi
 grep '^DISK|' <<<"$enum_out" | cut -d'|' -f4 | while read -r c; do
-	case "$c" in nvme[0-9]) ;; 0:0:0:0|2:0:0:0) ;; *) echo "FALLO: ctrl inesperado '$c'"; exit 1 ;; esac
+	case "$c" in nvme[0-9]) ;; 0:0:0:0 | 2:0:0:0) ;; *)
+		echo "FALLO: ctrl inesperado '$c'"
+		exit 1
+		;;
+	esac
 done || fails=1
 
 # Poll: IO con 3 campos numéricos y TEMP con k10temp y al menos un nvme
-grep -qE '^IO (nvme[0-9]+n[0-9]+|sd[a-z]+) [0-9]+ [0-9]+$' <<<"$poll_out" || { echo "FALLO: líneas IO"; fails=1; }
-grep -qE '^NET [^ ]+ [0-9]+ [0-9]+$' <<<"$poll_out" || { echo "FALLO: líneas NET"; fails=1; }
-grep -q '^TEMP|k10temp|' <<<"$poll_out" || { echo "FALLO: sin k10temp"; fails=1; }
-grep -q '^TEMP|nvme|nvme[0-9]|' <<<"$poll_out" || { echo "FALLO: sin temp nvme"; fails=1; }
+grep -qE '^IO (nvme[0-9]+n[0-9]+|sd[a-z]+) [0-9]+ [0-9]+$' <<<"$poll_out" || {
+	echo "FALLO: líneas IO"
+	fails=1
+}
+grep -qE '^NET [^ ]+ [0-9]+ [0-9]+$' <<<"$poll_out" || {
+	echo "FALLO: líneas NET"
+	fails=1
+}
+grep -q '^TEMP|k10temp|' <<<"$poll_out" || {
+	echo "FALLO: sin k10temp"
+	fails=1
+}
+grep -q '^TEMP|nvme|nvme[0-9]|' <<<"$poll_out" || {
+	echo "FALLO: sin temp nvme"
+	fails=1
+}
 
 # El controlador del hwmon nvme debe existir como disco enumerado
 grep '^TEMP|nvme|' <<<"$poll_out" | cut -d'|' -f3 | while read -r dev; do
 	grep -q "|$dev\$" <<<"$(grep '^DISK|' <<<"$enum_out")" || {
-		echo "FALLO: hwmon '$dev' sin disco asociado"; exit 1; }
+		echo "FALLO: hwmon '$dev' sin disco asociado"
+		exit 1
+	}
 done || fails=1
 
 [ "$fails" -eq 0 ] && echo "OK: $(grep -c '^DISK|' <<<"$enum_out") discos, $(grep -c '^NET|' <<<"$enum_out") iface(s) activas, poll correcto"

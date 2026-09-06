@@ -1,10 +1,12 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQml
+import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasma5support as Plasma5Support
 import org.kde.ksysguard.sensors as Sensors
+import org.kde.kirigami as Kirigami
 
 PlasmoidItem {
 	id: root
@@ -29,6 +31,15 @@ PlasmoidItem {
 
 	Plasmoid.title: i18n("Monitor del sistema")
 	Plasmoid.icon: "utilities-system-monitor"
+
+	// Las cajas dibujan su propio fondo; sin esto Plasma pintaría otro debajo
+	Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
+
+	// Tamaño en el escritorio (patrón del Glassy: en la raíz del PlasmoidItem)
+	Layout.minimumWidth: Kirigami.Units.gridUnit * 40
+	Layout.minimumHeight: Kirigami.Units.gridUnit * 30
+	Layout.preferredWidth: Kirigami.Units.gridUnit * 46
+	Layout.preferredHeight: Kirigami.Units.gridUnit * 34
 
 	// Widget de escritorio: siempre la representación completa
 	preferredRepresentation: fullRepresentation
@@ -105,23 +116,31 @@ PlasmoidItem {
 	property var lastNet: ({})
 	property double lastTick: 0
 
+	// Enumeración: conexión puntual, se desconecta al recibir la salida
 	Plasma5Support.DataSource {
-		id: execSource
+		id: enumSource
 		engine: "executable"
 		connectedSources: []
 		onNewData: (sourceName, data) => {
-			if (sourceName === root.enumCmd) {
-				root.parseEnum(String(data["stdout"] ?? ""))
-				execSource.disconnectSource(sourceName)
-			} else if (sourceName === root.pollCmd) {
-				root.parsePoll(String(data["stdout"] ?? ""))
-			}
+			root.parseEnum(String(data["stdout"] ?? ""))
+			enumSource.disconnectSource(sourceName)
+		}
+	}
+
+	// Poll periódico: el intervalo va en la propiedad del DataSource,
+	// connectSource() solo acepta el comando
+	Plasma5Support.DataSource {
+		id: pollSource
+		engine: "executable"
+		interval: 2000
+		connectedSources: [root.pollCmd]
+		onNewData: (sourceName, data) => {
+			root.parsePoll(String(data["stdout"] ?? ""))
 		}
 	}
 
 	Component.onCompleted: {
-		execSource.connectSource(enumCmd)
-		execSource.connectSource(pollCmd, 2000)
+		enumSource.connectSource(enumCmd)
 	}
 
 	// --- Parseo de la enumeración inicial ---

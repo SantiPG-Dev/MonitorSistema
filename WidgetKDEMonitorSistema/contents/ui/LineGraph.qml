@@ -131,7 +131,6 @@ Canvas {
 			var v = ser.values
 			if (v.length < 2) continue
 			var n = v.length
-			var rgb = hexRgb(ser.color)
 
 			ctx.save()
 			ctx.beginPath()
@@ -154,11 +153,6 @@ Canvas {
 			}
 
 			tracePath()
-
-			// Glow: mismo path trazado con ancho grande y alfa baja (sin shadowBlur)
-			ctx.strokeStyle = "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.22)"
-			ctx.lineWidth = 7
-			ctx.stroke()
 
 			ctx.strokeStyle = String(ser.color)
 			ctx.lineWidth = 2

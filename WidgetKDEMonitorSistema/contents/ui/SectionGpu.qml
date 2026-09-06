@@ -3,55 +3,59 @@ import QtQuick.Layouts
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
-// Caja GPU: igual que la captura (uso grande, frecuencia, VRAM) pero con el
-// historial en línea con relleno en degradado y el modelo junto a NVIDIA.
+// Caja GPU: cabecera con marca+modelo, MHz y uso (patrón Glassy), gráfica con
+// degradado y título centrado, barra de VRAM y leyenda.
 Rectangle {
 	id: card
 
 	property var monitorRoot: null
 
 	radius: Kirigami.Units.largeSpacing
-	color: Qt.rgba(15/255, 17/255, 21/255, 0.72)
+	color: Qt.rgba(15 / 255, 17 / 255, 21 / 255, 0.72)
 	border.color: Qt.rgba(1, 1, 1, 0.08)
 	border.width: 1
 
 	readonly property color lineColor: "#ff9a3d"
+	readonly property int baseFont: Math.round(Kirigami.Units.gridUnit * 0.7)
 
 	ColumnLayout {
 		anchors.fill: parent
-		anchors.margins: Kirigami.Units.gridUnit * 0.6
+		anchors.margins: Kirigami.Units.gridUnit * 0.5
 		spacing: Kirigami.Units.smallSpacing
 
-		// Cabecera: modelo a la izquierda, título centrado encima
-		Item {
+		// Cabecera: [NVIDIA + modelo ...... ] [MHz] [uso %]
+		RowLayout {
 			Layout.fillWidth: true
-			implicitHeight: brandLabel.implicitHeight
+			spacing: Kirigami.Units.smallSpacing
 
 			PlasmaComponents3.Label {
-				id: brandLabel
-				anchors.left: parent.left
-				anchors.verticalCenter: parent.verticalCenter
-				width: parent.width - Kirigami.Units.gridUnit * 3
+				Layout.fillWidth: true
 				elide: Text.ElideRight
 				textFormat: Text.RichText
 				text: "<div style='white-space: nowrap'>" +
 					"<span style='color:#76b900;font-weight:bold'>NVIDIA</span>" +
-					"<span style='color:" + Kirigami.Theme.textColor + "'> " +
+					"<span style='color:#ffffff'> " +
 					(monitorRoot ? monitorRoot.gpuName.replace(/^NVIDIA\s*/, "") : "") +
 					"</span></div>"
-				font: Kirigami.Theme.smallFont
+				font.pixelSize: card.baseFont
 			}
 
 			PlasmaComponents3.Label {
-				anchors.centerIn: parent
-				text: i18n("GPU")
-				font.bold: true
-				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.9)
+				visible: monitorRoot && monitorRoot.gpuFreq > 0
+				text: monitorRoot && monitorRoot.gpuFreq > 0 ? Math.round(monitorRoot.gpuFreq) + " MHz" : ""
 				color: "#ffffff"
+				opacity: 0.55
+				font.pixelSize: card.baseFont
+			}
+
+			PlasmaComponents3.Label {
+				text: monitorRoot ? monitorRoot.fmtPercent(monitorRoot.gpuUsage) : "0%"
+				color: card.lineColor
+				font.bold: true
+				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 1.05)
 			}
 		}
 
-		// Historial de uso con degradado + valor actual y frecuencia superpuestos
 		Item {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
@@ -63,27 +67,13 @@ Rectangle {
 				series: [ { color: card.lineColor, fill: true, values: [] } ]
 			}
 
-			ColumnLayout {
+			PlasmaComponents3.Label {
 				anchors.top: parent.top
-				anchors.right: parent.right
-				anchors.margins: Kirigami.Units.smallSpacing
-				spacing: 0
-
-				PlasmaComponents3.Label {
-					Layout.alignment: Qt.AlignRight
-					text: monitorRoot ? monitorRoot.fmtPercent(monitorRoot.gpuUsage) : "0%"
-					font.pixelSize: Math.round(Kirigami.Units.gridUnit * 1.6)
-					font.bold: true
-					color: card.lineColor
-				}
-
-				PlasmaComponents3.Label {
-					Layout.alignment: Qt.AlignRight
-					text: monitorRoot && monitorRoot.gpuFreq > 0 ? Math.round(monitorRoot.gpuFreq) + " MHz" : ""
-					font: Kirigami.Theme.smallFont
-					opacity: 0.6
-					color: "#ffffff"
-				}
+				anchors.horizontalCenter: parent.horizontalCenter
+				text: i18n("GPU")
+				color: "#ffffff"
+				font.bold: true
+				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.85)
 			}
 		}
 
@@ -95,7 +85,6 @@ Rectangle {
 			fmt: monitorRoot ? monitorRoot.fmtBytes : function(v) { return "" }
 		}
 
-		// Leyenda: el plugin de NVML no expone decode/encode, solo la serie de uso
 		RowLayout {
 			spacing: Kirigami.Units.smallSpacing
 
@@ -108,9 +97,9 @@ Rectangle {
 
 			PlasmaComponents3.Label {
 				text: i18n("GPU")
-				font: Kirigami.Theme.smallFont
-				opacity: 0.6
 				color: "#ffffff"
+				opacity: 0.6
+				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.6)
 			}
 		}
 	}

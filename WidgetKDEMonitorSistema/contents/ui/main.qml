@@ -116,23 +116,31 @@ PlasmoidItem {
 	property var lastNet: ({})
 	property double lastTick: 0
 
+	// Enumeración: conexión puntual, se desconecta al recibir la salida
 	Plasma5Support.DataSource {
-		id: execSource
+		id: enumSource
 		engine: "executable"
 		connectedSources: []
 		onNewData: (sourceName, data) => {
-			if (sourceName === root.enumCmd) {
-				root.parseEnum(String(data["stdout"] ?? ""))
-				execSource.disconnectSource(sourceName)
-			} else if (sourceName === root.pollCmd) {
-				root.parsePoll(String(data["stdout"] ?? ""))
-			}
+			root.parseEnum(String(data["stdout"] ?? ""))
+			enumSource.disconnectSource(sourceName)
+		}
+	}
+
+	// Poll periódico: el intervalo va en la propiedad del DataSource,
+	// connectSource() solo acepta el comando
+	Plasma5Support.DataSource {
+		id: pollSource
+		engine: "executable"
+		interval: 2000
+		connectedSources: [root.pollCmd]
+		onNewData: (sourceName, data) => {
+			root.parsePoll(String(data["stdout"] ?? ""))
 		}
 	}
 
 	Component.onCompleted: {
-		execSource.connectSource(enumCmd)
-		execSource.connectSource(pollCmd, 2000)
+		enumSource.connectSource(enumCmd)
 	}
 
 	// --- Parseo de la enumeración inicial ---

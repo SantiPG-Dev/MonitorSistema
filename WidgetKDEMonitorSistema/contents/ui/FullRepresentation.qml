@@ -1,73 +1,75 @@
 import QtQuick 2.15
-import QtQuick.Layouts
+import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
-// Layout del boceto: fila [GPU|temp][CPU|temp] con las parejas pegadas,
-// Disk IO y Network a ancho completo repartiéndose en columnas por unidad.
-ColumnLayout {
-	id: full
+// Panel completo con posiciones deterministas (patrón Glassy: Item raíz y
+// anclas, sin layouts anidados que se pisen entre sí).
+//
+//   [ GPU ][|T|]      [ CPU ][|T|]     <- fila 1, parejas pegadas
+//   [ Disk IO ...................... ] <- fila 2, columnas por disco
+//   [ Network ...................... ] <- fila 3, columnas por interfaz
+Item {
+	id: panel
 
 	property var monitorRoot
 
-	spacing: Kirigami.Units.gridUnit * 0.7
+	readonly property int gap: Math.round(Kirigami.Units.gridUnit * 0.6)
 
-	RowLayout {
-		Layout.fillWidth: true
-		Layout.fillHeight: true
-		spacing: Kirigami.Units.gridUnit
+	SectionGpu {
+		id: gpuCard
+		anchors.top: panel.top
+		anchors.left: panel.left
+		width: panel.width * 0.48
+		height: panel.height * 0.46
+		monitorRoot: panel.monitorRoot
+	}
 
-		// GPU + barra de temperatura pegadas
-		RowLayout {
-			Layout.fillWidth: true
-			Layout.fillHeight: true
-			spacing: Kirigami.Units.smallSpacing * 0.5
+	TempStrip {
+		title: i18n("Temp")
+		temp: panel.monitorRoot ? panel.monitorRoot.gpuTemp : 0
+		anchors.top: gpuCard.top
+		anchors.bottom: gpuCard.bottom
+		anchors.left: gpuCard.right
+		anchors.leftMargin: 2
+		width: Kirigami.Units.gridUnit * 1.3
+	}
 
-			SectionGpu {
-				monitorRoot: full.monitorRoot
-				Layout.fillWidth: true
-				Layout.fillHeight: true
-			}
+	SectionCpu {
+		id: cpuCard
+		anchors.top: panel.top
+		anchors.right: panel.right
+		width: panel.width * 0.48
+		height: panel.height * 0.46
+		monitorRoot: panel.monitorRoot
+	}
 
-			TempStrip {
-				title: i18n("Temp")
-				temp: full.monitorRoot ? full.monitorRoot.gpuTemp : 0
-				Layout.preferredWidth: Kirigami.Units.gridUnit * 1.3
-				Layout.maximumWidth: Kirigami.Units.gridUnit * 1.5
-				Layout.fillHeight: true
-			}
-		}
-
-		// CPU + barra de temperatura pegadas
-		RowLayout {
-			Layout.fillWidth: true
-			Layout.fillHeight: true
-			spacing: Kirigami.Units.smallSpacing * 0.5
-
-			SectionCpu {
-				monitorRoot: full.monitorRoot
-				Layout.fillWidth: true
-				Layout.fillHeight: true
-			}
-
-			TempStrip {
-				title: i18n("Temp")
-				temp: full.monitorRoot ? full.monitorRoot.cpuTemp : 0
-				Layout.preferredWidth: Kirigami.Units.gridUnit * 1.3
-				Layout.maximumWidth: Kirigami.Units.gridUnit * 1.5
-				Layout.fillHeight: true
-			}
-		}
+	TempStrip {
+		title: i18n("Temp")
+		temp: panel.monitorRoot ? panel.monitorRoot.cpuTemp : 0
+		anchors.top: cpuCard.top
+		anchors.bottom: cpuCard.bottom
+		anchors.left: cpuCard.right
+		anchors.leftMargin: 2
+		width: Kirigami.Units.gridUnit * 1.3
 	}
 
 	SectionDisks {
-		monitorRoot: full.monitorRoot
-		Layout.fillWidth: true
-		Layout.fillHeight: true
+		id: disksCard
+		anchors.top: gpuCard.bottom
+		anchors.topMargin: panel.gap
+		anchors.left: panel.left
+		anchors.right: panel.right
+		height: panel.height * 0.27
+		monitorRoot: panel.monitorRoot
 	}
 
 	SectionNetwork {
-		monitorRoot: full.monitorRoot
-		Layout.fillWidth: true
-		Layout.fillHeight: true
+		id: netCard
+		anchors.top: disksCard.bottom
+		anchors.topMargin: panel.gap
+		anchors.left: panel.left
+		anchors.right: panel.right
+		anchors.bottom: panel.bottom
+		monitorRoot: panel.monitorRoot
 	}
 }

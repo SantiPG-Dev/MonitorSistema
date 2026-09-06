@@ -5,7 +5,7 @@ import org.kde.kirigami as Kirigami
 // Panel completo con posiciones deterministas (patrón Glassy: Item raíz y
 // anclas, sin layouts anidados que se pisen entre sí).
 //
-//   [ GPU ][|T|]      [ CPU ][|T|]     <- fila 1, parejas pegadas
+//   [ GPU (temp dentro) ]  [ CPU (temp dentro) ]   <- fila 1, tarjetas completas
 //   [ Disk IO ...................... ] <- fila 2, columnas por disco
 //   [ Network ...................... ] <- fila 3, columnas por interfaz
 Item {
@@ -19,38 +19,18 @@ Item {
 		id: gpuCard
 		anchors.top: panel.top
 		anchors.left: panel.left
-		width: panel.width * 0.48
+		width: panel.width * 0.49
 		height: panel.height * 0.46
 		monitorRoot: panel.monitorRoot
-	}
-
-	TempStrip {
-		title: i18n("Temp")
-		temp: panel.monitorRoot ? panel.monitorRoot.gpuTemp : 0
-		anchors.top: gpuCard.top
-		anchors.bottom: gpuCard.bottom
-		anchors.left: gpuCard.right
-		anchors.leftMargin: 2
-		width: Kirigami.Units.gridUnit * 1.3
 	}
 
 	SectionCpu {
 		id: cpuCard
 		anchors.top: panel.top
 		anchors.right: panel.right
-		width: panel.width * 0.48
+		width: panel.width * 0.49
 		height: panel.height * 0.46
 		monitorRoot: panel.monitorRoot
-	}
-
-	TempStrip {
-		title: i18n("Temp")
-		temp: panel.monitorRoot ? panel.monitorRoot.cpuTemp : 0
-		anchors.top: cpuCard.top
-		anchors.bottom: cpuCard.bottom
-		anchors.left: cpuCard.right
-		anchors.leftMargin: 2
-		width: Kirigami.Units.gridUnit * 1.3
 	}
 
 	SectionDisks {

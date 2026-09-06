@@ -1,9 +1,10 @@
 import QtQuick 2.15
+import QtQuick.Layouts
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
-// Caja Network: título y una columna por interfaz activa con posición
-// determinista (x = ancho * indice), con bajada/subida, totales y gráfica.
+// Caja Network al estilo Glassy: por interfaz — badge de iface, gráfica,
+// totales de sesión (↓/↑) y leyenda con cuadraditos y valores en vivo.
 Rectangle {
 	id: card
 
@@ -17,7 +18,6 @@ Rectangle {
 	readonly property color downColor: "#3fb9ff"
 	readonly property color upColor: "#ff9a3d"
 	readonly property int cellCount: monitorRoot ? Math.max(1, monitorRoot.nets.count) : 1
-	readonly property int baseFont: Math.round(Kirigami.Units.gridUnit * 0.65)
 
 	PlasmaComponents3.Label {
 		id: title
@@ -33,11 +33,10 @@ Rectangle {
 	Item {
 		id: cells
 		anchors.top: title.bottom
-		anchors.topMargin: Kirigami.Units.smallSpacing
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
-		anchors.bottomMargin: Kirigami.Units.gridUnit * 0.4
+		anchors.margins: Kirigami.Units.gridUnit * 0.4
 
 		Repeater {
 			model: card.monitorRoot ? card.monitorRoot.nets : []
@@ -59,80 +58,101 @@ Rectangle {
 					visible: cell.index > 0
 					x: 0
 					anchors.top: parent.top
-					anchors.topMargin: Kirigami.Units.smallSpacing
 					anchors.bottom: parent.bottom
-					anchors.bottomMargin: Kirigami.Units.smallSpacing
 					width: 1
 					color: Qt.rgba(1, 1, 1, 0.15)
 				}
 
-				PlasmaComponents3.Label {
-					id: ifaceName
-					anchors.top: parent.top
-					anchors.left: parent.left
+				// Contenido en columna: badge, gráfica, totales, leyenda
+				ColumnLayout {
+					anchors.fill: parent
 					anchors.leftMargin: cell.index > 0 ? Kirigami.Units.largeSpacing : 0
-					text: cell.iface
-					color: "#ffffff"
-					font.bold: true
-					font.pixelSize: card.baseFont
-				}
+					anchors.rightMargin: Kirigami.Units.gridUnit * 0.4
+					spacing: 3
 
-				// Bajada: velocidad + total acumulado
-				Column {
-					id: downCol
-					anchors.top: ifaceName.bottom
-					anchors.topMargin: Kirigami.Units.smallSpacing
-					anchors.left: ifaceName.left
-					spacing: 0
-
+					// Badge de interfaz (Glassy: nombre pequeño y discreto)
 					PlasmaComponents3.Label {
-						text: "▼ " + (card.monitorRoot ? card.monitorRoot.fmtBytes(cell.down) + "/s" : "")
-						color: card.downColor
-						font.bold: true
-						font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.9)
-					}
-					PlasmaComponents3.Label {
-						text: card.monitorRoot ? card.monitorRoot.fmtBytes(cell.totalDown) : ""
+						text: cell.iface
 						color: "#ffffff"
-						opacity: 0.55
-						font.pixelSize: card.baseFont
+						opacity: 0.5
+						font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.62)
 					}
-				}
 
-				// Subida: velocidad + total acumulado
-				Column {
-					anchors.top: ifaceName.bottom
-					anchors.topMargin: Kirigami.Units.smallSpacing
-					anchors.right: parent.right
-					anchors.rightMargin: Kirigami.Units.gridUnit * 0.5
-					spacing: 0
-
-					PlasmaComponents3.Label {
-						text: "▲ " + (card.monitorRoot ? card.monitorRoot.fmtBytes(cell.up) + "/s" : "")
-						color: card.upColor
-						font.bold: true
-						font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.9)
+					LineGraph {
+						id: netGraph
+						Layout.fillWidth: true
+						Layout.fillHeight: true
+						series: [
+							{ color: card.downColor, fill: false, values: [] },
+							{ color: card.upColor, fill: false, values: [] }
+						]
 					}
-					PlasmaComponents3.Label {
-						text: card.monitorRoot ? card.monitorRoot.fmtBytes(cell.totalUp) : ""
-						color: "#ffffff"
-						opacity: 0.55
-						font.pixelSize: card.baseFont
-					}
-				}
 
-				LineGraph {
-					id: netGraph
-					anchors.top: downCol.bottom
-					anchors.topMargin: Kirigami.Units.smallSpacing
-					anchors.left: ifaceName.left
-					anchors.right: parent.right
-					anchors.rightMargin: Kirigami.Units.gridUnit * 0.5
-					anchors.bottom: parent.bottom
-					series: [
-						{ color: card.downColor, fill: false, values: [] },
-						{ color: card.upColor, fill: false, values: [] }
-					]
+					// Totales de sesión: ↓ a la izquierda, ↑ a la derecha
+					RowLayout {
+						Layout.fillWidth: true
+						spacing: Kirigami.Units.smallSpacing
+
+						PlasmaComponents3.Label {
+							text: "↓ " + (card.monitorRoot ? card.monitorRoot.fmtBytes(cell.totalDown) : "")
+							color: card.downColor
+							opacity: 0.8
+							font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.62)
+						}
+						Item { Layout.fillWidth: true }
+						PlasmaComponents3.Label {
+							text: "↑ " + (card.monitorRoot ? card.monitorRoot.fmtBytes(cell.totalUp) : "")
+							color: card.upColor
+							opacity: 0.8
+							font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.62)
+						}
+					}
+
+					// Leyenda con valores en vivo (Glassy: cuadradito + nombre + valor)
+					RowLayout {
+						Layout.fillWidth: true
+						spacing: Kirigami.Units.smallSpacing
+
+						Rectangle {
+							width: Kirigami.Units.gridUnit * 0.45
+							height: Kirigami.Units.gridUnit * 0.45
+							radius: 2
+							color: card.downColor
+						}
+						PlasmaComponents3.Label {
+							text: i18n("Download")
+							color: "#ffffff"
+							opacity: 0.7
+							font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.62)
+						}
+						PlasmaComponents3.Label {
+							text: card.monitorRoot ? card.monitorRoot.fmtBytes(cell.down) + "/s" : ""
+							color: card.downColor
+							font.bold: true
+							font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
+						}
+
+						Item { Layout.fillWidth: true }
+
+						PlasmaComponents3.Label {
+							text: card.monitorRoot ? card.monitorRoot.fmtBytes(cell.up) + "/s" : ""
+							color: card.upColor
+							font.bold: true
+							font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.75)
+						}
+						PlasmaComponents3.Label {
+							text: i18n("Upload")
+							color: "#ffffff"
+							opacity: 0.7
+							font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.62)
+						}
+						Rectangle {
+							width: Kirigami.Units.gridUnit * 0.45
+							height: Kirigami.Units.gridUnit * 0.45
+							radius: 2
+							color: card.upColor
+						}
+					}
 				}
 
 				onDownChanged: netGraph.push(0, down)

@@ -11,11 +11,13 @@ Item {
 
 	property real temp: 0
 	property string title: ""
+	property bool showTitle: true
 
 	implicitWidth: Math.round(Kirigami.Units.gridUnit * 1.3)
 
 	PlasmaComponents3.Label {
 		id: titleLabel
+		visible: strip.showTitle
 		anchors.top: parent.top
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: strip.title
@@ -26,7 +28,7 @@ Item {
 
 	Rectangle {
 		id: groove
-		anchors.top: titleLabel.bottom
+		anchors.top: titleLabel.visible ? titleLabel.bottom : parent.top
 		anchors.topMargin: Kirigami.Units.smallSpacing
 		anchors.bottom: valueLabel.top
 		anchors.bottomMargin: Kirigami.Units.smallSpacing

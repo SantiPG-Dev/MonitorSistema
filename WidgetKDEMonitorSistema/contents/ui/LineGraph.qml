@@ -57,8 +57,11 @@ Canvas {
 		ctx.clearRect(0, 0, w, h)
 		if (!series || series.length === 0) return
 
-		var pad = Math.max(24, Kirigami.Units.gridUnit * 1.5)
-		var top = 2, bottom = h - 2
+		// Las etiquetas del eje Y se pisan con los bordes si van al ras:
+		// se les reserva medio texto arriba y abajo y un margen a la izquierda
+		var labelH = Math.round(Kirigami.Units.gridUnit * 0.55)
+		var top = Math.ceil(labelH / 2) + 2
+		var bottom = h - Math.ceil(labelH / 2) - 2
 
 		var yMax = percent ? 100 : 1024
 		if (!percent) {
@@ -91,7 +94,7 @@ Canvas {
 				ctx.lineTo(w, y)
 				ctx.stroke()
 			}
-			ctx.fillText(fmtAxis(yMax * frac), 2, y)
+			ctx.fillText(fmtAxis(yMax * frac), 5, y)
 		}
 
 		var dx = maxPoints > 1 ? gw / (maxPoints - 1) : 0

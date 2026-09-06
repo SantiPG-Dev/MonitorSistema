@@ -32,7 +32,16 @@ Rectangle {
 		anchors.margins: Kirigami.Units.gridUnit * 0.5
 		spacing: Kirigami.Units.smallSpacing
 
-		// Cabecera: [AMD + modelo ...... ]
+		// Título de la tarjeta
+		PlasmaComponents3.Label {
+			Layout.alignment: Qt.AlignHCenter
+			text: i18n("CPU")
+			color: "#ffffff"
+			font.bold: true
+			font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.85)
+		}
+
+		// Marca y modelo
 		PlasmaComponents3.Label {
 			Layout.fillWidth: true
 			elide: Text.ElideRight
@@ -83,15 +92,6 @@ Rectangle {
 					anchors.fill: parent
 					percent: true
 					series: [ { color: card.lineColor, fill: true, values: [] } ]
-				}
-
-				PlasmaComponents3.Label {
-					anchors.top: parent.top
-					anchors.horizontalCenter: parent.horizontalCenter
-					text: i18n("CPU")
-					color: "#ffffff"
-					font.bold: true
-					font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.85)
 				}
 
 				ColumnLayout {

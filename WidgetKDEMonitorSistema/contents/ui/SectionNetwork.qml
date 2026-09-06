@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
-// Caja Network al estilo Glassy: por interfaz — badge de iface, gráfica,
+// Caja Network: por interfaz — badge de iface, gráfica,
 // totales de sesión (↓/↑) y leyenda con cuadraditos y valores en vivo.
 Rectangle {
 	id: card
@@ -70,7 +70,7 @@ Rectangle {
 					anchors.rightMargin: Kirigami.Units.gridUnit * 0.4
 					spacing: 3
 
-					// Badge de interfaz (Glassy: nombre pequeño y discreto)
+					// Badge de interfaz (nombre pequeño y discreto)
 					PlasmaComponents3.Label {
 						text: cell.iface
 						color: "#ffffff"
@@ -108,7 +108,7 @@ Rectangle {
 						}
 					}
 
-					// Leyenda con valores en vivo (Glassy: cuadradito + nombre + valor)
+					// Leyenda con valores en vivo (cuadradito + nombre + valor)
 					RowLayout {
 						Layout.fillWidth: true
 						spacing: Kirigami.Units.smallSpacing

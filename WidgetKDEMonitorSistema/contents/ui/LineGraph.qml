@@ -140,15 +140,43 @@ Canvas {
 			ctx.lineCap = "round"
 			ctx.lineJoin = "round"
 
-			// Trazo suavizado: bezier con puntos de control en el punto medio x
-			ctx.beginPath()
-			ctx.moveTo(w - (n - 1) * dx, yv(v[0]))
-			for (var j = 1; j < n; j++) {
-				var x = w - (n - 1 - j) * dx
-				var px = w - (n - j) * dx
-				var cx = (px + x) / 2
-				ctx.bezierCurveTo(cx, yv(v[j - 1]), cx, yv(v[j]), x, yv(v[j]))
+			// Trazo suavizado: bezier con puntos de control en el punto medio x.
+			// Se construye aparte el path para poder reutilizarlo en el relleno
+			function tracePath() {
+				ctx.beginPath()
+				ctx.moveTo(w - (n - 1) * dx, yv(v[0]))
+				for (var j = 1; j < n; j++) {
+					var x = w - (n - 1 - j) * dx
+					var px = w - (n - j) * dx
+					var cx = (px + x) / 2
+					ctx.bezierCurveTo(cx, yv(v[j - 1]), cx, yv(v[j]), x, yv(v[j]))
+				}
 			}
+
+			// Relleno: de 0 a la línea en TODO el histórico. Se recorta al polígono
+			// bajo la curva y se pinta por segmentos con degradado propio (clip +
+			// fillRect): anclar un único degradado al techo o al valor actual deja
+			// zonas invisibles o un tinte que no nace en la línea según dónde mires
+			if (ser.fill) {
+				ctx.save()
+				tracePath()
+				ctx.lineTo(w, bottom)
+				ctx.lineTo(w - (n - 1) * dx, bottom)
+				ctx.closePath()
+				ctx.clip()
+				for (var q = 0; q < n - 1; q++) {
+					var x0 = w - (n - 1 - q) * dx
+					var yTop = Math.min(yv(v[q]), yv(v[q + 1]))
+					var gr = ctx.createLinearGradient(0, yTop, 0, bottom)
+					gr.addColorStop(0, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.35)")
+					gr.addColorStop(1, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0)")
+					ctx.fillStyle = gr
+					ctx.fillRect(x0, 0, dx + 0.75, h)
+				}
+				ctx.restore()
+			}
+
+			tracePath()
 
 			// Glow: mismo path trazado con ancho grande y alfa baja (sin shadowBlur)
 			ctx.strokeStyle = "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.22)"
@@ -158,20 +186,6 @@ Canvas {
 			ctx.strokeStyle = String(ser.color)
 			ctx.lineWidth = 2
 			ctx.stroke()
-
-			// Relleno: el path persiste tras el stroke, se cierra por abajo y se
-			// rellena. El degradado va del valor ACTUAL a la base ( Glassy lo ancla
-		// al techo y con líneas bajas el sombreado queda invisible )
-			if (ser.fill) {
-				ctx.lineTo(w, bottom)
-				ctx.lineTo(w - (n - 1) * dx, bottom)
-				ctx.closePath()
-				var grad = ctx.createLinearGradient(0, yv(v[n - 1]), 0, bottom)
-				grad.addColorStop(0, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.35)")
-				grad.addColorStop(1, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0)")
-				ctx.fillStyle = grad
-				ctx.fill()
-			}
 			ctx.restore()
 		}
 	}

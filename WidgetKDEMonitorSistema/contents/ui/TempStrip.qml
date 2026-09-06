@@ -25,7 +25,7 @@ ColumnLayout {
 		Layout.fillWidth: true
 		Layout.fillHeight: true
 		radius: width / 2
-		color: "rgba(255,255,255,0.10)"
+		color: Qt.rgba(1, 1, 1, 0.10)
 
 		Rectangle {
 			anchors.bottom: parent.bottom

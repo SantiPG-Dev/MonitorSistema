@@ -11,8 +11,8 @@ Rectangle {
 	property var monitorRoot: null
 
 	radius: Kirigami.Units.largeSpacing
-	color: "rgba(15,17,21,0.72)"
-	border.color: "rgba(255,255,255,0.08)"
+	color: Qt.rgba(15/255, 17/255, 21/255, 0.72)
+	border.color: Qt.rgba(1, 1, 1, 0.08)
 	border.width: 1
 
 	readonly property color lineColor: "#2ee6a8"

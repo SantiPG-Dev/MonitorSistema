@@ -2,7 +2,7 @@ import QtQuick 2.15
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
-// Panel completo con posiciones deterministas (patrón Glassy: Item raíz y
+// Panel completo con posiciones deterministas (Item raíz y
 // anclas, sin layouts anidados que se pisen entre sí).
 //
 //   [ GPU (temp dentro) ]  [ CPU (temp dentro) ]   <- fila 1, tarjetas completas

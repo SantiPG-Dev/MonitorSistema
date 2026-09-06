@@ -3,8 +3,8 @@ import QtQuick.Layouts
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 
-// Caja CPU: cabecera con marca+modelo, MHz y uso, gráfica con degradado y
-// título centrado, barra de RAM y leyenda.
+// Caja CPU con la temperatura DENTRO, como una unidad (igual que GPU):
+// gráfica a la izquierda, barra de temperatura pegada al borde derecho.
 Rectangle {
 	id: card
 
@@ -32,58 +32,90 @@ Rectangle {
 		anchors.margins: Kirigami.Units.gridUnit * 0.5
 		spacing: Kirigami.Units.smallSpacing
 
-		// Cabecera: [AMD + modelo ...... ] [MHz] [uso %]
-		RowLayout {
+		// Cabecera: [AMD + modelo ...... ]
+		PlasmaComponents3.Label {
 			Layout.fillWidth: true
-			spacing: Kirigami.Units.smallSpacing
-
-			PlasmaComponents3.Label {
-				Layout.fillWidth: true
-				elide: Text.ElideRight
-				textFormat: Text.RichText
-				text: {
-					var bm = brandAndModel()
-					return "<div style='white-space: nowrap'>" +
-						"<span style='color:#ff4b4b;font-weight:bold'>" + bm.brand + "</span>" +
-						"<span style='color:#ffffff'> " + bm.model + "</span></div>"
-				}
-				font.pixelSize: card.baseFont
+			elide: Text.ElideRight
+			textFormat: Text.RichText
+			text: {
+				var bm = brandAndModel()
+				return "<div style='white-space: nowrap'>" +
+					"<span style='color:#ff4b4b;font-weight:bold'>" + bm.brand + "</span>" +
+					"<span style='color:#ffffff'> " + bm.model + "</span></div>"
 			}
-
-			PlasmaComponents3.Label {
-				visible: monitorRoot && monitorRoot.cpuFreq > 0
-				text: monitorRoot && monitorRoot.cpuFreq > 0 ? Math.round(monitorRoot.cpuFreq) + " MHz" : ""
-				color: "#ffffff"
-				opacity: 0.55
-				font.pixelSize: card.baseFont
-			}
-
-			PlasmaComponents3.Label {
-				text: monitorRoot ? monitorRoot.fmtPercent(monitorRoot.cpuUsage) : "0%"
-				color: card.lineColor
-				font.bold: true
-				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 1.05)
-			}
+			font.pixelSize: card.baseFont
 		}
 
 		Item {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
-			LineGraph {
-				id: usageGraph
-				anchors.fill: parent
-				percent: true
-				series: [ { color: card.lineColor, fill: true, values: [] } ]
+			Rectangle {
+				id: stripSep
+				anchors.right: tempZone.left
+				anchors.rightMargin: Kirigami.Units.smallSpacing
+				anchors.top: parent.top
+				anchors.bottom: parent.bottom
+				width: 1
+				color: Qt.rgba(1, 1, 1, 0.12)
 			}
 
-			PlasmaComponents3.Label {
+			TempStrip {
+				id: tempZone
+				anchors.right: parent.right
 				anchors.top: parent.top
-				anchors.horizontalCenter: parent.horizontalCenter
-				text: i18n("CPU")
-				color: "#ffffff"
-				font.bold: true
-				font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.85)
+				anchors.bottom: parent.bottom
+				width: Kirigami.Units.gridUnit * 1.3
+				showTitle: false
+				temp: monitorRoot ? monitorRoot.cpuTemp : 0
+			}
+
+			Item {
+				id: graphZone
+				anchors.top: parent.top
+				anchors.bottom: parent.bottom
+				anchors.left: parent.left
+				anchors.right: stripSep.left
+				anchors.rightMargin: Kirigami.Units.smallSpacing
+
+				LineGraph {
+					id: usageGraph
+					anchors.fill: parent
+					percent: true
+					series: [ { color: card.lineColor, fill: true, values: [] } ]
+				}
+
+				PlasmaComponents3.Label {
+					anchors.top: parent.top
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: i18n("CPU")
+					color: "#ffffff"
+					font.bold: true
+					font.pixelSize: Math.round(Kirigami.Units.gridUnit * 0.85)
+				}
+
+				ColumnLayout {
+					anchors.top: parent.top
+					anchors.right: parent.right
+					spacing: 0
+
+					PlasmaComponents3.Label {
+						Layout.alignment: Qt.AlignRight
+						text: monitorRoot ? monitorRoot.fmtPercent(monitorRoot.cpuUsage) : "0%"
+						color: card.lineColor
+						font.bold: true
+						font.pixelSize: Math.round(Kirigami.Units.gridUnit * 1.4)
+					}
+
+					PlasmaComponents3.Label {
+						Layout.alignment: Qt.AlignRight
+						visible: monitorRoot && monitorRoot.cpuFreq > 0
+						text: monitorRoot && monitorRoot.cpuFreq > 0 ? Math.round(monitorRoot.cpuFreq) + " MHz" : ""
+						color: "#ffffff"
+						opacity: 0.55
+						font.pixelSize: card.baseFont
+					}
+				}
 			}
 		}
 

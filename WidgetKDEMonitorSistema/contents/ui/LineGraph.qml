@@ -1,8 +1,10 @@
 import QtQuick 2.15
 import org.kde.kirigami as Kirigami
 
-// Gráfica de líneas estilo sensor nativo: rejilla horizontal, etiquetas Y a la
-// izquierda y series con relleno en degradado opcional (GPU/CPU lo usan).
+// Gráfica de líneas al estilo de kde-glassy-system-monitor (MIT, Muddyblack):
+// líneas suavizadas con beziers, glow de trazo ancho a baja alfa, relleno con
+// degradado fijo de arriba (0.35) a la base (0) y escala Y continua sin
+// redondear a "números bonitos" — el redondeo hacía saltar la línea entera.
 Canvas {
 	id: canvas
 
@@ -24,23 +26,15 @@ Canvas {
 		requestPaint()
 	}
 
-	// Redondea el máximo de la escala a un número "bonito" para las etiquetas
-	function niceMax(m) {
-		if (m <= 0) return 1024
-		var e = Math.pow(10, Math.floor(Math.log(m) / Math.LN10))
-		var f = m / e
-		var nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10
-		return nf * e
-	}
-
-	// "#rrggbb" -> "rgba(r,g,b,a)" para los degradados (el color viaja como string)
-	function hexRgba(hex, a) {
+	// "#rrggbb" -> {r,g,b} para degradados y alfas
+	function hexRgb(hex) {
 		var h = String(hex).replace("#", "")
 		if (h.length === 8) h = h.substr(2)
-		var r = parseInt(h.substr(0, 2), 16)
-		var g = parseInt(h.substr(2, 2), 16)
-		var b = parseInt(h.substr(4, 2), 16)
-		return "rgba(" + r + "," + g + "," + b + "," + a + ")"
+		return {
+			r: parseInt(h.substr(0, 2), 16),
+			g: parseInt(h.substr(2, 2), 16),
+			b: parseInt(h.substr(4, 2), 16)
+		}
 	}
 
 	function fmtAxis(v) {
@@ -57,13 +51,11 @@ Canvas {
 		ctx.clearRect(0, 0, w, h)
 		if (!series || series.length === 0) return
 
-		// Las etiquetas del eje Y se pisan con los bordes si van al ras:
-		// se les reserva medio texto arriba y abajo y un margen a la izquierda
-		var labelH = Math.round(Kirigami.Units.gridUnit * 0.55)
-		var top = Math.ceil(labelH / 2) + 2
-		var bottom = h - Math.ceil(labelH / 2) - 2
+		// Márgenes verticales como Glassy: 6% arriba y abajo, 88% útil
+		var tPad = h * 0.06, uH = h * 0.88
+		var top = tPad, bottom = h - tPad
 
-		var yMax = percent ? 100 : 1024
+		var yMax = 100
 		if (!percent) {
 			var m = 0
 			for (var s = 0; s < series.length; s++) {
@@ -72,76 +64,115 @@ Canvas {
 					if (vals[i] > m) m = vals[i]
 				}
 			}
-			yMax = niceMax(m * 1.25)
+			yMax = Math.max(1024, m * 1.2)
 		}
 
-		var axisW = Math.min(w * 0.22, Kirigami.Units.gridUnit * 3)
+		var axisW = Math.min(w * 0.28, Math.round(Kirigami.Units.gridUnit * 2.2))
 		var gx = axisW, gw = w - axisW
 
-		// Rejilla y etiquetas Y (3 marcas como los widgets nativos)
-		ctx.strokeStyle = "rgba(255,255,255,0.10)"
-		ctx.lineWidth = 1
-		ctx.font = Math.round(Kirigami.Units.gridUnit * 0.55) + "px sans-serif"
-		ctx.fillStyle = "rgba(255,255,255,0.45)"
-		ctx.textAlign = "left"
+		// Rejilla discontinua + etiquetas: número en negrita y unidad más
+		// pequeña debajo, alineadas a la derecha (3 marcas: max, medio y 0)
+		ctx.setLineDash([3, 5])
+		ctx.lineWidth = 0.5
+		ctx.strokeStyle = "rgba(255,255,255,0.12)"
+		var numFont = Math.round(Kirigami.Units.gridUnit * 0.5)
+		var unitFont = Math.round(Kirigami.Units.gridUnit * 0.38)
+		ctx.textAlign = "right"
 		ctx.textBaseline = "middle"
 		for (var g = 0; g < 3; g++) {
 			var frac = g / 2
-			var y = bottom - frac * (bottom - top)
-			if (g > 0) {
-				ctx.beginPath()
-				ctx.moveTo(gx, y)
-				ctx.lineTo(w, y)
-				ctx.stroke()
+			var y = bottom - frac * uH
+			ctx.beginPath()
+			ctx.moveTo(gx, y)
+			ctx.lineTo(w, y)
+			ctx.stroke()
+			var txt = fmtAxis(yMax * frac)
+			var sp = txt.lastIndexOf(" ")
+			if (sp > 0) {
+				ctx.font = "bold " + numFont + "px sans-serif"
+				ctx.fillStyle = "rgba(255,255,255,0.65)"
+				ctx.fillText(txt.slice(0, sp), gx - 4, y - unitFont * 0.6)
+				ctx.font = unitFont + "px sans-serif"
+				ctx.fillStyle = "rgba(255,255,255,0.38)"
+				ctx.fillText(txt.slice(sp + 1), gx - 4, y + unitFont * 0.8)
+			} else {
+				ctx.font = "bold " + numFont + "px sans-serif"
+				ctx.fillStyle = "rgba(255,255,255,0.65)"
+				ctx.fillText(txt, gx - 4, y)
 			}
-			ctx.fillText(fmtAxis(yMax * frac), 5, y)
 		}
+		ctx.setLineDash([])
 
 		var dx = maxPoints > 1 ? gw / (maxPoints - 1) : 0
 
-		for (var k = 0; k < series.length; k++) {
+		// Sin datos: línea discontinua en el medio, como el estado idle de Glassy
+		var any = false
+		for (var c = 0; c < series.length && !any; c++) any = series[c].values.length > 0
+		if (!any) {
+			ctx.lineWidth = 1
+			ctx.strokeStyle = "rgba(255,255,255,0.18)"
+			ctx.setLineDash([4, 6])
+			ctx.beginPath()
+			ctx.moveTo(gx, h / 2)
+			ctx.lineTo(w, h / 2)
+			ctx.stroke()
+			ctx.setLineDash([])
+			return
+		}
+
+		function yv(val) {
+			return bottom - Math.min(1, Math.max(0, val / yMax)) * uH
+		}
+
+		// Se dibujan en orden inverso: la primera serie queda ENCIMA
+		// (download sobre upload, como Glassy)
+		for (var k = series.length - 1; k >= 0; k--) {
 			var ser = series[k]
 			var v = ser.values
 			if (v.length < 2) continue
 			var n = v.length
-			var yv = function(val) {
-				return bottom - Math.min(1, Math.max(0, val / yMax)) * (bottom - top)
-			}
+			var rgb = hexRgb(ser.color)
+
+			ctx.save()
 			ctx.beginPath()
-			for (var j = 0; j < n; j++) {
+			ctx.rect(gx, 0, gw, h)
+			ctx.clip()
+			ctx.lineCap = "round"
+			ctx.lineJoin = "round"
+
+			// Trazo suavizado: bezier con puntos de control en el punto medio x
+			ctx.beginPath()
+			ctx.moveTo(w - (n - 1) * dx, yv(v[0]))
+			for (var j = 1; j < n; j++) {
 				var x = w - (n - 1 - j) * dx
-				if (j === 0) ctx.moveTo(x, yv(v[j]))
-				else ctx.lineTo(x, yv(v[j]))
+				var px = w - (n - j) * dx
+				var cx = (px + x) / 2
+				ctx.bezierCurveTo(cx, yv(v[j - 1]), cx, yv(v[j]), x, yv(v[j]))
 			}
+
+			// Glow: mismo path trazado con ancho grande y alfa baja (sin shadowBlur)
+			ctx.strokeStyle = "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.22)"
+			ctx.lineWidth = 7
+			ctx.stroke()
+
+			ctx.strokeStyle = String(ser.color)
+			ctx.lineWidth = 2
+			ctx.stroke()
+
+			// Relleno: el path persiste tras el stroke, se cierra por abajo y se
+			// rellena. El degradado va del valor ACTUAL a la base ( Glassy lo ancla
+		// al techo y con líneas bajas el sombreado queda invisible )
 			if (ser.fill) {
-				// Cerrar el polígono por abajo (último punto → base derecha → base izquierda)
-				// y rellenar con degradado desde la línea actual hasta 0,
-				// no desde el techo del gráfico: si no, con la línea baja el relleno
-				// queda en la zona casi transparente del degradado
-				ctx.save()
 				ctx.lineTo(w, bottom)
 				ctx.lineTo(w - (n - 1) * dx, bottom)
 				ctx.closePath()
-				var yNow = yv(v[n - 1])
-				var grad = ctx.createLinearGradient(0, yNow, 0, bottom)
-				grad.addColorStop(0, hexRgba(ser.color, 0.35))
-				grad.addColorStop(1, hexRgba(ser.color, 0))
+				var grad = ctx.createLinearGradient(0, yv(v[n - 1]), 0, bottom)
+				grad.addColorStop(0, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.35)")
+				grad.addColorStop(1, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0)")
 				ctx.fillStyle = grad
 				ctx.fill()
-				ctx.restore()
-				// Redibujar el trazo porque el fill consume el path
-				ctx.beginPath()
-				for (var j2 = 0; j2 < n; j2++) {
-					var x2 = w - (n - 1 - j2) * dx
-					if (j2 === 0) ctx.moveTo(x2, yv(v[j2]))
-					else ctx.lineTo(x2, yv(v[j2]))
-				}
 			}
-			ctx.strokeStyle = ser.color
-			ctx.lineWidth = 2
-			ctx.lineJoin = "round"
-			ctx.lineCap = "round"
-			ctx.stroke()
+			ctx.restore()
 		}
 	}
 }

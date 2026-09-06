@@ -15,8 +15,8 @@ Rectangle {
 	border.color: Qt.rgba(1, 1, 1, 0.08)
 	border.width: 1
 
-	readonly property color downColor: "#3fb9ff"
-	readonly property color upColor: "#ff9a3d"
+	readonly property color downColor: "#22aaff"
+	readonly property color upColor: "#ff9933"
 	readonly property int cellCount: monitorRoot ? Math.max(1, monitorRoot.nets.count) : 1
 
 	PlasmaComponents3.Label {
@@ -83,8 +83,8 @@ Rectangle {
 						Layout.fillWidth: true
 						Layout.fillHeight: true
 						series: [
-							{ color: card.downColor, fill: false, values: [] },
-							{ color: card.upColor, fill: false, values: [] }
+							{ color: card.downColor, fill: true, values: [] },
+							{ color: card.upColor, fill: true, values: [] }
 						]
 					}
 

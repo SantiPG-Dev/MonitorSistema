@@ -102,19 +102,45 @@ PlasmoidItem {
 		"[ \"$(cat $i/operstate 2>/dev/null)\" = up ] && echo \"NET|$n\"; done"
 
 	// Poll periódico: IO por disco acumulado, tráfico por interfaz acumulado y temps hwmon.
+	// La primera línea es la epoch-ms en el momento de leer los contadores: así el dt de las
+	// tasas no hereda el retardo de spawn del shell ni la entrega a QML.
 	// Límite asumido: solo temp1 del hwmon (Composite en NVMe, Tctl en k10temp); si algún
 	// disco expusiera más sensores habría que iterar temp*_input.
 	readonly property string pollCmd:
+		"date +%s%3N; " +
 		"awk '$3 ~ /^(nvme[0-9]+n[0-9]+|sd[a-z]+)$/ {print \"IO \"$3\" \"$6*512\" \"$10*512}' /proc/diskstats; " +
 		"awk 'NR>2 {sub(/:/,\"\"); if ($1 != \"lo\") print \"NET \"$1\" \"$2\" \"$10}' /proc/net/dev; " +
 		"for h in /sys/class/hwmon/hwmon*; do n=$(cat $h/name 2>/dev/null); " +
 		"p=$(basename $(readlink -f $h/device 2>/dev/null)); t=$(cat $h/temp1_input 2>/dev/null); " +
 		"[ -n \"$n\" ] && [ -n \"$t\" ] && echo \"TEMP|$n|$p|$t\"; done"
 
-	// Acumulados del poll anterior para calcular tasas
+	// Acumulados del poll anterior para calcular tasas de IO de disco
 	property var lastIO: ({})
-	property var lastNet: ({})
 	property double lastTick: 0
+
+	// Tasas de red por interfaz vía ksystemstats (sensor download/upload en
+	// bytes/s), como el widget Glassy. Se crean al enumerar cada interfaz.
+	Component {
+		id: netRateSensor
+		Sensors.Sensor {
+			property string ifc: ""
+			property bool isDown: true
+			onValueChanged: {
+				var v = Number(value)
+				if (!isFinite(v) || v < 0) return
+				root.setNetRow(ifc, isDown ? { down: v } : { up: v })
+			}
+		}
+	}
+	property var netSensors: []
+
+	function makeNetSensor(ifc, isDown) {
+		var s = netRateSensor.createObject(root, {
+			ifc: ifc, isDown: isDown,
+			sensorId: "network/" + ifc + (isDown ? "/download" : "/upload")
+		})
+		if (s) netSensors.push(s)
+	}
 
 	// Enumeración: conexión puntual, se desconecta al recibir la salida
 	Plasma5Support.DataSource {
@@ -127,12 +153,12 @@ PlasmoidItem {
 		}
 	}
 
-	// Poll periódico: el intervalo va en la propiedad del DataSource,
-	// connectSource() solo acepta el comando
+	// Poll periódico: 1 s para que la red se mida por segundo como los widgets nativos.
+	// El intervalo va en la propiedad del DataSource, connectSource() solo acepta el comando
 	Plasma5Support.DataSource {
 		id: pollSource
 		engine: "executable"
-		interval: 2000
+		interval: 1000
 		connectedSources: [root.pollCmd]
 		onNewData: (sourceName, data) => {
 			root.parsePoll(String(data["stdout"] ?? ""))
@@ -154,20 +180,27 @@ PlasmoidItem {
 				disks.append({ name: dp[1], diskModel: dp[2] || "", ctrl: dp[3] || "",
 					temp: -1, read: 0, write: 0 })
 			} else if (l.indexOf("NET|") === 0) {
-				nets.append({ iface: l.slice(4), down: 0, up: 0, totalDown: 0, totalUp: 0 })
+				var nm = l.slice(4)
+				nets.append({ iface: nm, down: 0, up: 0, totalDown: 0, totalUp: 0 })
+				makeNetSensor(nm, true)
+				makeNetSensor(nm, false)
 			} else if (!cpuModel) {
 				cpuModel = l.trim()
 			}
 		}
 	}
 
-	// --- Parseo del poll periódico: calcula tasas con el delta temporal ---
+	// --- Parseo del poll periódico: totales de sesión de red y IO/temps ---
+	// Las tasas de red las dan los sensores; aquí solo importan los contadores
+	// acumulados para los totales ↓/↑.
 	function parsePoll(out) {
-		var now = Date.now()
+		var lines = out.split("\n")
+		// Hora real de la lectura de contadores (epoch ms), no la de llegada a QML
+		var now = Number(lines[0])
+		if (!isFinite(now) || now <= 0) now = Date.now()
 		var dt = lastTick > 0 ? Math.max(0.2, (now - lastTick) / 1000) : 0
 
-		var lines = out.split("\n")
-		for (var i = 0; i < lines.length; i++) {
+		for (var i = 1; i < lines.length; i++) {
 			var l = lines[i]
 			if (!l) continue
 			if (l.indexOf("IO ") === 0) {
@@ -181,14 +214,7 @@ PlasmoidItem {
 				lastIO[name] = { rb: rb, wb: wb }
 			} else if (l.indexOf("NET ") === 0) {
 				var q = l.split(" ")
-				var ifc = q[1], rx = Number(q[2]), tx = Number(q[3])
-				var pn = lastNet[ifc]
-				setNetRow(ifc, {
-					down: pn && dt > 0 ? Math.max(0, (rx - pn.rx) / dt) : 0,
-					up: pn && dt > 0 ? Math.max(0, (tx - pn.tx) / dt) : 0,
-					totalDown: rx, totalUp: tx
-				})
-				lastNet[ifc] = { rx: rx, tx: tx }
+				setNetRow(q[1], { totalDown: Number(q[2]), totalUp: Number(q[3]) })
 			} else if (l.indexOf("TEMP|") === 0) {
 				var t = l.split("|")
 				var chip = t[1], dev = t[2], milli = Number(t[3])
@@ -223,10 +249,7 @@ PlasmoidItem {
 	function setNetRow(ifc, fields) {
 		for (var i = 0; i < nets.count; i++) {
 			if (nets.get(i).iface === ifc) {
-				nets.setProperty(i, "down", fields.down)
-				nets.setProperty(i, "up", fields.up)
-				nets.setProperty(i, "totalDown", fields.totalDown)
-				nets.setProperty(i, "totalUp", fields.totalUp)
+				for (var k in fields) nets.setProperty(i, k, fields[k])
 				return
 			}
 		}

@@ -82,7 +82,7 @@ Rectangle {
 					id: usageGraph
 					anchors.fill: parent
 					percent: true
-					series: [ { color: card.lineColor, fill: true, values: [] } ]
+					series: [ { color: card.lineColor, values: [] } ]
 				}
 
 				ColumnLayout {

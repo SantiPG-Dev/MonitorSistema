@@ -155,11 +155,15 @@ Rectangle {
 					}
 				}
 
-				onDownChanged: netGraph.push(0, down)
-				onUpChanged: netGraph.push(1, up)
-				Component.onCompleted: {
-					netGraph.push(0, 0)
-					netGraph.push(1, 0)
+				// Muestreo por tick del root: con valores constantes (red idle)
+				// los sensores no emiten cambios y la gráfica se congelaba
+				Connections {
+					target: card.monitorRoot
+					ignoreUnknownSignals: true
+					function onGraphTickChanged() {
+						netGraph.push(0, cell.down)
+						netGraph.push(1, cell.up)
+					}
 				}
 			}
 		}

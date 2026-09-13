@@ -160,11 +160,15 @@ Rectangle {
 					]
 				}
 
-				onReadChanged: ioGraph.push(0, read)
-				onWriteChanged: ioGraph.push(1, write)
-				Component.onCompleted: {
-					ioGraph.push(0, 0)
-					ioGraph.push(1, 0)
+				// Muestreo por tick del root: con valores constantes (disco sin IO)
+				// los sensores no emiten cambios y la gráfica se congelaba
+				Connections {
+					target: card.monitorRoot
+					ignoreUnknownSignals: true
+					function onGraphTickChanged() {
+						ioGraph.push(0, cell.read)
+						ioGraph.push(1, cell.write)
+					}
 				}
 			}
 		}

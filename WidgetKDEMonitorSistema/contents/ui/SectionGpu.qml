@@ -150,7 +150,7 @@ Rectangle {
 	Connections {
 		target: monitorRoot
 		ignoreUnknownSignals: true
-		function onGpuUsageChanged() {
+		function onGraphTickChanged() {
 			usageGraph.push(0, monitorRoot.gpuUsage)
 		}
 	}

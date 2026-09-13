@@ -159,7 +159,7 @@ Rectangle {
 	Connections {
 		target: monitorRoot
 		ignoreUnknownSignals: true
-		function onCpuUsageChanged() {
+		function onGraphTickChanged() {
 			usageGraph.push(0, monitorRoot.cpuUsage)
 		}
 	}

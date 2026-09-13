@@ -48,6 +48,18 @@ PlasmoidItem {
 	}
 
 	// --- Sensores fijos de ksystemstats (GPU vía NVML, CPU y RAM) ---
+	// Tick de muestreo: las gráficas avanzan por tick y no por cambio de valor,
+	// porque un sensor constante (GPU al 0%, red idle) no emite valueChanged
+	// y la gráfica se quedaba parada. 1 s, igual que el poll de abajo.
+	property int graphTick: 0
+	Timer {
+		interval: 1000
+		repeat: true
+		running: true
+		triggeredOnStart: true
+		onTriggered: root.graphTick++
+	}
+
 	Sensors.Sensor {
 		sensorId: "gpu/gpu0/name"
 		onValueChanged: root.gpuName = String(value ?? "")
